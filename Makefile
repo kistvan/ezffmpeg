@@ -1,8 +1,10 @@
 INCLUDE = -I.
 LIBS = -L./libavformat -L./libavcodec -L./libavutil -L./libswscale -lavformat -lavcodec -lavutil -lswscale
 
-target:libfmpgdebug.c
-	gcc -Wall -g -o libfmpegdebug libfmpgdebug.c libffmpeg.c $(INCLUDE) $(LIBS) 
+all: dll main
+
+main:libfmpgdebug.c
+	gcc -Wall -g -o libfmpegdebug libfmpgdebug.c ezffmpeg.dll $(INCLUDE) $(LIBS) 
 
 
 dll:libffmpeg.c

@@ -1,23 +1,3 @@
-// tutorial01.c
-// Code based on a tutorial by Martin Bohme (boehme@inb.uni-luebeckREMOVETHIS.de)
-// Tested on Gentoo, CVS version 5/01/07 compiled with GCC 4.1.1
-
-// A small sample program that shows how to use libavformat and libavcodec to
-// read video from a file.
-//
-// Use
-//
-// gcc -o tutorial01 tutorial01.c -lavformat -lavcodec -lz
-//
-// to build (assuming libavformat and libavcodec are correctly installed
-// your system).
-//
-// Run using
-//
-// tutorial01 myvideofile.mpg
-//
-// to write the first five frames from "myvideofile.mpg" to disk in PPM
-// format.
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -58,7 +38,7 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
   int  y;
   
   // Open file
-  sprintf(szFilename, "E:\\MinGW\\msys\\1.0\\home\\koji\\work\\tutorial\\img\\frame%d.ppm", iFrame);
+  sprintf(szFilename, "E:\\MinGW\\msys\\1.0\\home\\koji\\work\\ezffmpeg\\img\\frame%d.ppm", iFrame);
   pFile=fopen(szFilename, "wb");
   if(pFile==NULL) {
 	printf("ファイルが開けません");
@@ -76,9 +56,9 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
   fclose(pFile);
 }
 
-void SaveFrameBmp(AVFrame *pFrame, int width, int height, int iFrame) {
-  FILE *pFile;
-  char szFilename[256];
+void SaveFrameBmp(AVFrame *pFrame, int width, int height, FILE *pSaveFile) {
+  FILE *pFile = pSaveFile;
+//  char szFilename[256];
   int  y;
   unsigned short headerId = 0x4d42; //BM
 //  uint8_t blue[3] = {0x000000, 0x000000, 0x0000FF};
@@ -105,12 +85,12 @@ void SaveFrameBmp(AVFrame *pFrame, int width, int height, int iFrame) {
   
   
   // Open file
-  sprintf(szFilename, "E:\\MinGW\\msys\\1.0\\home\\koji\\work\\tutorial\\img\\frame%d.bmp", iFrame);
-  pFile=fopen(szFilename, "wb");
-  if(pFile==NULL) {
-	printf("ファイルが開けません");
-    return;
-  }
+//  sprintf(szFilename, "E:\\MinGW\\msys\\1.0\\home\\koji\\work\\ezffmpeg\\img\\frame%d.bmp", iFrame);
+//  pFile=fopen(szFilename, "wb");
+//  if(pFile==NULL) {
+//	printf("ファイルが開けません");
+//    return;
+//  }
   
   // Write header
   fwrite(&headerId, sizeof(headerId), 1, pFile);
@@ -123,15 +103,16 @@ void SaveFrameBmp(AVFrame *pFrame, int width, int height, int iFrame) {
   
   // Write pixel data
   //*が先
-  for(y=height; y>=0; y--)
-    fwrite(pFrame->data[0]+y*pFrame->linesize[0], 1, width*3, pFile);
+  for(y=height; y>=0; y--) {
+    fwrite(pFrame->data[0]+y*pFrame->linesize[0], width*3, 1, pFile);
+  }
 //    printf("%d_", y);
 //	for(i = 0; i < width; i++) {
 //	    fwrite(blue, sizeof(uint8_t[3]), 1, pFile);
 //	}
   
   // Close file
-  fclose(pFile);
+//  fclose(pFile);
 }
 
 void init_ffmpeg()
@@ -140,8 +121,7 @@ void init_ffmpeg()
 }
 
 
-//int main(int argc, char *argv[]) {
-int ffmpegrun(int argc, char *argv[]) {
+int ffmpegrun(int argc, char *argv[], FILE *pSaveFile) {
   AVFormatContext *pFormatCtx  = NULL;
   int             i, videoStream;
   AVCodecContext  *pCodecCtx = NULL;
@@ -313,7 +293,7 @@ int ffmpegrun(int argc, char *argv[]) {
 	printf("save frame... %d\n ", i);
 */
 	  SaveFrameBmp(pFrameRGB, pCodecCtx->width, pCodecCtx->height, 
-		    i);
+		    pSaveFile);
       }
     }
 	++i;
@@ -321,7 +301,7 @@ int ffmpegrun(int argc, char *argv[]) {
     // Free the packet that was allocated by av_read_frame
     av_free_packet(&packet);
     
-    if(frameNum >= 100) {
+    if(frameNum >= 1) {
 		break;
 	}
   }
