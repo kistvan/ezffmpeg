@@ -56,7 +56,7 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
   fclose(pFile);
 }
 
-void SaveFrameBmp(AVFrame *pFrame, int width, int height, FILE *pSaveFile) {
+void SaveFrameBmp(int linesize, int width, int height, FILE *pSaveFile, uint8_t *buf) {
   FILE *pFile = pSaveFile;
 //  char szFilename[256];
   int  y;
@@ -104,7 +104,8 @@ void SaveFrameBmp(AVFrame *pFrame, int width, int height, FILE *pSaveFile) {
   // Write pixel data
   //*が先
   for(y=height; y>=0; y--) {
-    fwrite(pFrame->data[0]+y*pFrame->linesize[0], width*3, 1, pFile);
+//    fwrite(pFrame->data[0]+y*pFrame->linesize[0], width*3, 1, pFile);
+    fwrite(buf+y*linesize, width*3, 1, pFile);
   }
 //    printf("%d_", y);
 //	for(i = 0; i < width; i++) {
@@ -121,7 +122,7 @@ void init_ffmpeg()
 }
 
 
-int ffmpegrun(int argc, char *argv[], FILE *pSaveFile) {
+int ffmpegrun(int argc, char *openFileName, FILE *pSaveFile) {
   AVFormatContext *pFormatCtx  = NULL;
   int             i, videoStream;
   AVCodecContext  *pCodecCtx = NULL;
@@ -129,7 +130,6 @@ int ffmpegrun(int argc, char *argv[], FILE *pSaveFile) {
   AVFrame         *pFrame = NULL; 
   AVFrame         *pFrameRGB = NULL;
   AVPacket        packet;
-  int             frameFinished;
   int             numBytes;
   int             numBytesRGB;
   uint8_t         *buffer;
@@ -138,7 +138,7 @@ int ffmpegrun(int argc, char *argv[], FILE *pSaveFile) {
   
   
   int frameNum = 0;
-  frameFinished = 1;
+  int linesize = 0;
   
   if(argc < 2) {
     printf("Please provide a movie file\n");
@@ -146,22 +146,19 @@ int ffmpegrun(int argc, char *argv[], FILE *pSaveFile) {
   }
   // Register all formats and codecs
   
-  printf("ab %d\n", 11);
-	printf("finame...%s\n", argv[0]);
-	printf("finame...%s\n", argv[1]);
   // Open video file
-  if(avformat_open_input(&pFormatCtx, argv[1], NULL, NULL)!=0) {
+  if(avformat_open_input(&pFormatCtx, openFileName, NULL, NULL)!=0) {
 	printf("ファイルが開けません");
     return -1; // Couldn't open file
   }
-  printf("abc\n");
+  printf("open file:%s\n", openFileName);
   
   // Retrieve stream information
   if(avformat_find_stream_info(pFormatCtx, NULL)<0)
     return -1; // Couldn't find stream information
   printf("stream_infoが存在します\n");
   // Dump information about file onto standard error
-  av_dump_format(pFormatCtx, 0, argv[1], 0);
+  av_dump_format(pFormatCtx, 0, openFileName, 0);
   
   // Find the first video stream
   videoStream=-1;
@@ -272,8 +269,6 @@ int ffmpegrun(int argc, char *argv[], FILE *pSaveFile) {
 	printf("yuv linesize :%d\n", pFrame->linesize[0]);
 */
       
-      // Did we get a video frame?
-      if(frameFinished) {
 	// Convert the image from its native format to RGB
 //	img_convert((AVPicture *)pFrameRGB, PIX_FMT_RGB24, 
 //                    (AVPicture*)pFrame, pCodecCtx->pix_fmt, pCodecCtx->width, 
@@ -292,9 +287,10 @@ int ffmpegrun(int argc, char *argv[], FILE *pSaveFile) {
 	// Save the frame to disk
 	printf("save frame... %d\n ", i);
 */
-	  SaveFrameBmp(pFrameRGB, pCodecCtx->width, pCodecCtx->height, 
-		    pSaveFile);
-      }
+	  linesize = pFrameRGB->linesize[0];
+	  av_free(pFrameRGB);
+	  SaveFrameBmp(linesize, pCodecCtx->width, pCodecCtx->height, 
+		    pSaveFile, bufferRGB);
     }
 	++i;
     

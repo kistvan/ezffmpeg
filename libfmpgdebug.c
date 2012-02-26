@@ -24,7 +24,7 @@ int main( int argc, char *argv[] )
 	  return -1;
 	}
 	printf("‘‚«‚İƒtƒ@ƒCƒ‹ %s\n", szFilename);
-	ffmpegrun(argc, argv, pFile);
+	ffmpegrun(argc, argv[1], pFile);
 	
 	fclose(pFile);
 	
