@@ -4,6 +4,7 @@
 #include <libswscale/swscale.h> 
 
 #include <stdio.h>
+#include <math.h>
 
 #include "libffmpeg.h"
 
@@ -135,6 +136,7 @@ int ffmpegrun(int argc, char *openFileName, FILE *pSaveFile) {
   uint8_t         *buffer;
   uint8_t         *bufferRGB;
   struct SwsContext *img_convert_ctx = NULL;
+  int64_t         timeBase;
   
   
   int frameNum = 0;
@@ -182,7 +184,14 @@ int ffmpegrun(int argc, char *openFileName, FILE *pSaveFile) {
   // Open codec
   if(avcodec_open2(pCodecCtx, pCodec, NULL)<0)
     return -1; // Could not open codec
-    printf("コーデック開きました\n");
+  printf("コーデック開きました\n");
+  printf("%I64d\n", pFormatCtx->duration);
+  printf("%f\n", (av_q2d(pFormatCtx->streams[videoStream]->avg_frame_rate)));
+  printf("%d\n", AV_TIME_BASE);
+  printf("total frame:%d\n", (int)ceil(pFormatCtx->duration / (1 / av_q2d(pFormatCtx->streams[videoStream]->avg_frame_rate)) / AV_TIME_BASE));
+  printf("time base:%I64d\n", 
+  		(((int64_t)(pCodecCtx->time_base.num) * AV_TIME_BASE) / (int64_t)(pCodecCtx->time_base.den)));
+  timeBase = (((int64_t)(pCodecCtx->time_base.num) * AV_TIME_BASE) / (int64_t)(pCodecCtx->time_base.den));
   
   // Allocate video frame
   pFrame=avcodec_alloc_frame();
@@ -231,6 +240,11 @@ int ffmpegrun(int argc, char *openFileName, FILE *pSaveFile) {
   av_init_packet(&packet);
   // Read frames and save first five frames to disk
   printf("frame読み込み開始\n");
+  if (av_seek_frame(pFormatCtx, videoStream, 0, AVSEEK_FLAG_ANY) < 0) {
+	printf("seekできませんでした");
+	return -1;
+  }
+  avcodec_flush_buffers(pCodecCtx);
   i=0;
   while(av_read_frame(pFormatCtx, &packet)>=0) {
 	if (packet.stream_index!=videoStream) {
@@ -241,6 +255,8 @@ int ffmpegrun(int argc, char *openFileName, FILE *pSaveFile) {
     // Is this a packet from the video stream?
     if(packet.stream_index==videoStream) {
 		printf("-----------\n");
+		printf("packet pts:%I64d\n", packet.pts);
+/*
 		printf("start dec\n");
 		printf("packet duration:%d\n", packet.duration);
 		printf("packet data:%p\n", packet.data);
@@ -248,6 +264,9 @@ int ffmpegrun(int argc, char *openFileName, FILE *pSaveFile) {
 		printf("packet pts:%I64d\n", packet.pts);
 		printf("packet dts:%I64d\n", packet.dts);
 		printf("stream index:%d\n", packet.stream_index);
+		printf("stream num:%d\n", pFormatCtx->streams[videoStream]->time_base.num);
+		printf("stream den:%d\n", pFormatCtx->streams[videoStream]->time_base.den);
+*/
 		int get_pic_ptr;
       // Decode video frame
       int decoded = 0;
